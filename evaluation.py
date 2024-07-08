@@ -177,7 +177,8 @@ def main(args):
     num_iter = 0
     with torch.no_grad():
         for batch in tqdm(dataset._val_dataloader()):
-            images = batch["image"].permute(0, 3, 1, 2).to(DEVICE)
+            images = batch["image"].to(DEVICE)
+            assert images.shape[0] == args.batch_size and images.shape[1] == 3 and images.shape[2] == args.image_size
             num_images += images.shape[0]
 
             if model.use_ema:

@@ -142,7 +142,8 @@ class VQModel(L.LightningModule):
         x = batch[k]
         if len(x.shape) == 3:
             x = x[..., None]
-        x = x.permute(0, 3, 1, 2).to(memory_format=torch.contiguous_format)
+        if x.shape[3] == 3:
+            x = x.permute(0, 3, 1, 2).to(memory_format=torch.contiguous_format)
         return x.float()
 
     # fix mulitple optimizer bug

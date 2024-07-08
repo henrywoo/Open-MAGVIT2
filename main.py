@@ -7,6 +7,7 @@ from lightning.pytorch.callbacks import ModelCheckpoint, Callback, LearningRateM
 from lightning import seed_everything
 
 from torch.utils.data.dataloader import default_collate as custom_collate
+from inet1k import get_cv_dataset, DS_PATH_IMAGENET1K
 
 import torch
 torch.set_float32_matmul_precision("high")
@@ -38,7 +39,6 @@ class WrappedDataset(Dataset):
     def __getitem__(self, idx):
         return self.data[idx]
 
-
 class DataModuleFromConfig(L.LightningDataModule):
     def __init__(self, batch_size, train=None, validation=None, test=None,
                  wrap=False, num_workers=None):
@@ -58,23 +58,34 @@ class DataModuleFromConfig(L.LightningDataModule):
         self.wrap = wrap
 
     def prepare_data(self):
-        for data_cfg in self.dataset_configs.values():
-            instantiate_from_config(data_cfg)
+        #for data_cfg in self.dataset_configs.values():
+        #    instantiate_from_config(data_cfg)
+        pass
 
     def setup(self, stage=None):
-        self.datasets = dict(
+        """self.datasets = dict(
             (k, instantiate_from_config(self.dataset_configs[k]))
             for k in self.dataset_configs)
         if self.wrap:
             for k in self.datasets:
-                self.datasets[k] = WrappedDataset(self.datasets[k])
+                self.datasets[k] = WrappedDataset(self.datasets[k])"""
+        image_size = self.dataset_configs["train"]["params"]["config"]["size"]
+        self.datasets = get_cv_dataset(
+            path=DS_PATH_IMAGENET1K,
+            image_size=image_size,
+            split="validation",
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            return_type="dict",
+            convert_rgb=True,
+        )
 
     def _train_dataloader(self):
         return DataLoader(self.datasets["train"], batch_size=self.batch_size,
                           num_workers=self.num_workers, shuffle=True, collate_fn=custom_collate, pin_memory=True)
 
     def _val_dataloader(self):
-        return DataLoader(self.datasets["validation"],
+        return DataLoader(self.datasets,  # ["validation"]
                           batch_size=self.batch_size,
                           num_workers=self.num_workers, collate_fn=custom_collate, shuffle=False, pin_memory=True)
 
